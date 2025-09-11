@@ -15,12 +15,13 @@ class KMZProcessorGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Drone KMZ Processor - Complete Workflow")
-        self.root.geometry("800x600")
+        self.root.geometry("900x700")
         self.root.resizable(True, True)
         
         # Variables
         self.input_file = tk.StringVar()
         self.output_dir = tk.StringVar()
+        self.output_filename = tk.StringVar(value="5336EE45-2941-4996-B7F1-22BAA25F2639.kmz")
         self.processing = False
         
         # Setup GUI
@@ -53,27 +54,44 @@ class KMZProcessorGUI:
         ttk.Entry(main_frame, textvariable=self.output_dir, width=50).grid(row=2, column=1, sticky=(tk.W, tk.E), padx=(5, 5), pady=5)
         ttk.Button(main_frame, text="Browse", command=self.browse_output_dir).grid(row=2, column=2, pady=5)
         
+        # Output filename selection
+        ttk.Label(main_frame, text="Output Filename:").grid(row=3, column=0, sticky=tk.W, pady=5)
+        filename_frame = ttk.Frame(main_frame)
+        filename_frame.grid(row=3, column=1, sticky=(tk.W, tk.E), padx=(5, 5), pady=5)
+        filename_frame.columnconfigure(0, weight=1)
+        
+        ttk.Entry(filename_frame, textvariable=self.output_filename, width=50).grid(row=0, column=0, sticky=(tk.W, tk.E))
+        ttk.Label(filename_frame, text="(Customize for different DJI RC units)", 
+                 font=("Arial", 8), foreground="gray").grid(row=1, column=0, sticky=tk.W)
+        
+        ttk.Button(main_frame, text="Reset", command=self.reset_filename).grid(row=3, column=2, pady=5)
+        
         # Process button
         self.process_button = ttk.Button(main_frame, text="🚀 Process KMZ File", 
-                                       command=self.process_kmz, style="Accent.TButton")
-        self.process_button.grid(row=3, column=0, columnspan=3, pady=20)
+                                       command=self.process_kmz)
+        self.process_button.grid(row=4, column=0, columnspan=3, pady=20, sticky=(tk.W, tk.E))
+        
+        # Configure button style
+        style = ttk.Style()
+        style.configure("Process.TButton", font=("Arial", 12, "bold"), padding=(10, 5))
+        self.process_button.configure(style="Process.TButton")
         
         # Progress bar
         self.progress = ttk.Progressbar(main_frame, mode='indeterminate')
-        self.progress.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
+        self.progress.grid(row=5, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
         
         # Log output
-        ttk.Label(main_frame, text="Processing Log:").grid(row=5, column=0, sticky=tk.W, pady=(10, 5))
+        ttk.Label(main_frame, text="Processing Log:").grid(row=6, column=0, sticky=tk.W, pady=(10, 5))
         
         # Text area for logs
         self.log_text = scrolledtext.ScrolledText(main_frame, height=15, width=80)
-        self.log_text.grid(row=6, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
+        self.log_text.grid(row=7, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
         
         # Status bar
         self.status_var = tk.StringVar()
         self.status_var.set("Ready to process KMZ files")
         status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief=tk.SUNKEN)
-        status_bar.grid(row=7, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 0))
+        status_bar.grid(row=8, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 0))
         
         # Set default output directory
         self.output_dir.set(os.getcwd())
@@ -94,6 +112,10 @@ class KMZProcessorGUI:
         directory = filedialog.askdirectory(title="Select Output Directory")
         if directory:
             self.output_dir.set(directory)
+            
+    def reset_filename(self):
+        """Reset filename to default"""
+        self.output_filename.set("5336EE45-2941-4996-B7F1-22BAA25F2639.kmz")
             
     def log_message(self, message):
         """Add message to log"""
@@ -122,6 +144,28 @@ class KMZProcessorGUI:
         if not os.path.exists(self.output_dir.get()):
             messagebox.showerror("Error", "Output directory does not exist")
             return
+            
+        # Validate filename
+        filename = self.output_filename.get().strip()
+        if not filename:
+            messagebox.showerror("Error", "Output filename cannot be empty")
+            return
+            
+        if not filename.lower().endswith('.kmz'):
+            messagebox.showerror("Error", "Output filename must end with .kmz")
+            return
+        
+        # Check if output file already exists
+        output_path = os.path.join(self.output_dir.get(), filename)
+        if os.path.exists(output_path):
+            response = messagebox.askyesno(
+                "File Exists", 
+                f"The file '{filename}' already exists in the output directory.\n\n"
+                f"Do you want to overwrite it?\n\n"
+                f"⚠️  WARNING: This will permanently delete the existing file!"
+            )
+            if not response:
+                return
         
         # Start processing in separate thread
         self.processing = True
@@ -149,8 +193,8 @@ class KMZProcessorGUI:
                 message = ' '.join(str(arg) for arg in args)
                 self.root.after(0, lambda: self.log_message(message))
             
-            # Process the file
-            output_path = processor.process_kmz(self.input_file.get(), self.output_dir.get())
+            # Process the file with custom filename
+            output_path = processor.process_kmz(self.input_file.get(), self.output_dir.get(), self.output_filename.get())
             
             if output_path:
                 self.root.after(0, lambda: self._processing_complete(True, output_path))

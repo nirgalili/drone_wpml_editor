@@ -21,13 +21,14 @@ class KMZProcessor:
         self.template_kml_path = None
         self.waylines_wpml_path = None
         
-    def process_kmz(self, input_kmz_path, output_dir=None):
+    def process_kmz(self, input_kmz_path, output_dir=None, output_filename=None):
         """
         Complete KMZ processing workflow
         
         Args:
             input_kmz_path: Path to input KMZ file
             output_dir: Directory to save output (default: same as input)
+            output_filename: Custom output filename (default: DJI RC format)
         
         Returns:
             Path to processed KMZ file
@@ -57,7 +58,7 @@ class KMZProcessor:
                 return None
                 
             # Step 6: Create new KMZ with processed WPML
-            output_path = self._create_output_kmz(output_dir)
+            output_path = self._create_output_kmz(output_dir, output_filename)
             
             # Step 7: Cleanup
             self._cleanup()
@@ -266,7 +267,7 @@ class KMZProcessor:
             print(f"❌ Error adding actions: {str(e)}")
             return None
     
-    def _create_output_kmz(self, output_dir):
+    def _create_output_kmz(self, output_dir, output_filename=None):
         """Create new KMZ file with processed WPML"""
         print("📦 Step 6: Creating output KMZ...")
         
@@ -275,9 +276,16 @@ class KMZProcessor:
             if output_dir is None:
                 output_dir = os.path.dirname(self.original_kmz_path)
             
-            # Use the exact filename required by DJI RC
-            output_filename = "5336EE45-2941-4996-B7F1-22BAA25F2639.kmz"
+            # Use custom filename or default DJI RC format
+            if output_filename is None:
+                output_filename = "5336EE45-2941-4996-B7F1-22BAA25F2639.kmz"
             output_path = os.path.join(output_dir, output_filename)
+            
+            # Check if file already exists
+            if os.path.exists(output_path):
+                print(f"⚠️  WARNING: File already exists: {output_filename}")
+                print("   The existing file will be overwritten!")
+                # Note: GUI will handle the confirmation dialog
             
             # Create new ZIP (KMZ) file
             with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
