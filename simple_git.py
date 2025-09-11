@@ -76,8 +76,22 @@ def main():
     # Step 3: Commit
     print_step(3, "Committing Changes")
     
-    commit_message = "Updated Drone KMZ Processor with complete workflow"
-    print(f"Commit message: {commit_message}")
+    # Suggest a commit message
+    suggested_message = "Added custom filename feature and file overwrite protection"
+    print(f"Suggested commit message: {suggested_message}")
+    print("\nYou can:")
+    print("1. Press Enter to use the suggested message")
+    print("2. Type your own custom message")
+    
+    custom_message = input("\nEnter commit message (or press Enter for suggested): ").strip()
+    
+    # Use custom message or suggested message
+    if custom_message:
+        commit_message = custom_message
+        print(f"Using custom message: {commit_message}")
+    else:
+        commit_message = suggested_message
+        print(f"Using suggested message: {commit_message}")
     
     success, stdout, stderr = run_command(f'git commit -m "{commit_message}"')
     if not success:
