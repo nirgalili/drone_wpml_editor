@@ -1,0 +1,16 @@
+# Drone WPML Editor Dependencies
+# GUI Framework
+tkinter  # Built into Python, no pip install needed
+
+# XML Processing
+lxml>=4.9.0
+
+# File handling and utilities
+pathlib  # Built into Python 3.4+
+
+# Optional: For enhanced GUI features
+Pillow>=9.0.0  # For image handling if needed
+customtkinter>=5.0.0  # Modern-looking tkinter alternative
+
+# Development tools (optional)
+pytest>=7.0.0  # For testing

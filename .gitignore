@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Test/coverage
+.pytest_cache/
+.coverage*
+htmlcov/
+
+# Logs
+logs/
+*.log
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Local env
+.env
+
+# Project-specific
+old/
+original/*
+!original/hover/
+!original/hover/waylines.wpml
+working_hover.wpml
+waylines_with_photos.wpml
+waylines_proper_photos.wpml
+waylines_simple_photos.wpml
