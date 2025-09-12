@@ -15,13 +15,15 @@ class KMZProcessorGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Drone KMZ Processor - Complete Workflow")
-        self.root.geometry("900x700")
+        self.root.geometry("900x800")
         self.root.resizable(True, True)
         
         # Variables
         self.input_file = tk.StringVar()
         self.output_dir = tk.StringVar()
         self.output_filename = tk.StringVar(value="5336EE45-2941-4996-B7F1-22BAA25F2639.kmz")
+        self.enable_hover = tk.BooleanVar(value=True)
+        self.hover_time = tk.StringVar(value="2")
         self.processing = False
         
         # Setup GUI
@@ -66,10 +68,39 @@ class KMZProcessorGUI:
         
         ttk.Button(main_frame, text="Reset", command=self.reset_filename).grid(row=3, column=2, pady=5)
         
+        # Hover options
+        hover_frame = ttk.LabelFrame(main_frame, text="Hover Options", padding="15")
+        hover_frame.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=15)
+        hover_frame.columnconfigure(1, weight=1)
+        
+        # Enable hover checkbox
+        self.hover_checkbox = ttk.Checkbutton(hover_frame, text="Enable hover before photo", 
+                                            variable=self.enable_hover, command=self.toggle_hover_options)
+        self.hover_checkbox.grid(row=0, column=0, columnspan=3, sticky=tk.W, pady=(0, 15))
+        
+        # Hover time selection
+        ttk.Label(hover_frame, text="Hover time (seconds):", font=("Arial", 9, "bold")).grid(row=1, column=0, sticky=tk.W, padx=(20, 10), pady=5)
+        
+        time_frame = ttk.Frame(hover_frame)
+        time_frame.grid(row=1, column=1, sticky=tk.W, padx=(0, 20))
+        
+        self.hover_time_entry = ttk.Entry(time_frame, textvariable=self.hover_time, width=8, font=("Arial", 9))
+        self.hover_time_entry.grid(row=0, column=0, padx=(0, 10))
+        
+        # Quick time buttons
+        ttk.Button(time_frame, text="1s", command=lambda: self.set_hover_time("1"), width=4).grid(row=0, column=1, padx=2)
+        ttk.Button(time_frame, text="2s", command=lambda: self.set_hover_time("2"), width=4).grid(row=0, column=2, padx=2)
+        ttk.Button(time_frame, text="3s", command=lambda: self.set_hover_time("3"), width=4).grid(row=0, column=3, padx=2)
+        ttk.Button(time_frame, text="5s", command=lambda: self.set_hover_time("5"), width=4).grid(row=0, column=4, padx=2)
+        
+        # Info label
+        ttk.Label(hover_frame, text="💡 Hover allows the drone to stabilize before taking photos", 
+                 font=("Arial", 8), foreground="gray").grid(row=2, column=0, columnspan=3, sticky=tk.W, padx=(20, 0), pady=(10, 0))
+        
         # Process button
         self.process_button = ttk.Button(main_frame, text="🚀 Process KMZ File", 
                                        command=self.process_kmz)
-        self.process_button.grid(row=4, column=0, columnspan=3, pady=20, sticky=(tk.W, tk.E))
+        self.process_button.grid(row=5, column=0, columnspan=3, pady=20, sticky=(tk.W, tk.E))
         
         # Configure button style
         style = ttk.Style()
@@ -78,20 +109,20 @@ class KMZProcessorGUI:
         
         # Progress bar
         self.progress = ttk.Progressbar(main_frame, mode='indeterminate')
-        self.progress.grid(row=5, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
+        self.progress.grid(row=6, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
         
         # Log output
-        ttk.Label(main_frame, text="Processing Log:").grid(row=6, column=0, sticky=tk.W, pady=(10, 5))
+        ttk.Label(main_frame, text="Processing Log:").grid(row=7, column=0, sticky=tk.W, pady=(10, 5))
         
         # Text area for logs
         self.log_text = scrolledtext.ScrolledText(main_frame, height=15, width=80)
-        self.log_text.grid(row=7, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
+        self.log_text.grid(row=8, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
         
         # Status bar
         self.status_var = tk.StringVar()
         self.status_var.set("Ready to process KMZ files")
         status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief=tk.SUNKEN)
-        status_bar.grid(row=8, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 0))
+        status_bar.grid(row=9, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 0))
         
         # Set default output directory
         self.output_dir.set(os.getcwd())
@@ -116,6 +147,15 @@ class KMZProcessorGUI:
     def reset_filename(self):
         """Reset filename to default"""
         self.output_filename.set("5336EE45-2941-4996-B7F1-22BAA25F2639.kmz")
+        
+    def set_hover_time(self, time):
+        """Set hover time from quick buttons"""
+        self.hover_time.set(time)
+        
+    def toggle_hover_options(self):
+        """Enable/disable hover time controls based on checkbox"""
+        state = "normal" if self.enable_hover.get() else "disabled"
+        self.hover_time_entry.config(state=state)
             
     def log_message(self, message):
         """Add message to log"""
@@ -155,6 +195,17 @@ class KMZProcessorGUI:
             messagebox.showerror("Error", "Output filename must end with .kmz")
             return
         
+        # Validate hover time if hover is enabled
+        if self.enable_hover.get():
+            try:
+                hover_time = float(self.hover_time.get())
+                if hover_time <= 0 or hover_time > 60:
+                    messagebox.showerror("Error", "Hover time must be between 0.1 and 60 seconds")
+                    return
+            except ValueError:
+                messagebox.showerror("Error", "Hover time must be a valid number")
+                return
+        
         # Check if output file already exists
         output_path = os.path.join(self.output_dir.get(), filename)
         if os.path.exists(output_path):
@@ -193,8 +244,11 @@ class KMZProcessorGUI:
                 message = ' '.join(str(arg) for arg in args)
                 self.root.after(0, lambda: self.log_message(message))
             
-            # Process the file with custom filename
-            output_path = processor.process_kmz(self.input_file.get(), self.output_dir.get(), self.output_filename.get())
+            # Process the file with custom filename and hover options
+            hover_enabled = self.enable_hover.get()
+            hover_time = float(self.hover_time.get()) if hover_enabled else 0
+            output_path = processor.process_kmz(self.input_file.get(), self.output_dir.get(), 
+                                              self.output_filename.get(), hover_enabled, hover_time)
             
             if output_path:
                 self.root.after(0, lambda: self._processing_complete(True, output_path))

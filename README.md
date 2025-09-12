@@ -16,8 +16,9 @@ Takes a KMZ file from Dronelink and automatically:
 2. **Run** `kmz_gui.py` (double-click it)
 3. **Browse** for your Dronelink KMZ file
 4. **Customize output filename** (optional - for different DJI RC units)
-5. **Click** "Process KMZ File"
-6. **Done!** Get your processed file ready for DJI RC
+5. **Choose hover options** (enable/disable hover, set hover time)
+6. **Click** "Process KMZ File"
+7. **Done!** Get your processed file ready for DJI RC
 
 ## 💻 Command Line Alternative
 
@@ -29,8 +30,11 @@ python kmz_processor.py your_mission.kmz
 
 - **Input:** `mission.kmz` (from Dronelink)
 - **Output:** `5336EE45-2941-4996-B7F1-22BAA25F2639.kmz` (default) or custom filename
-- **Result:** Every waypoint now has hover + photo actions
-- **Customizable:** Filename can be changed for different DJI RC units
+- **Result:** Every waypoint now has hover + photo actions (or photo only)
+- **Customizable:** 
+  - Filename can be changed for different DJI RC units
+  - Hover can be enabled/disabled
+  - Hover time can be customized (1-60 seconds)
 
 ## 🛠️ Advanced Tools
 

@@ -21,7 +21,7 @@ class KMZProcessor:
         self.template_kml_path = None
         self.waylines_wpml_path = None
         
-    def process_kmz(self, input_kmz_path, output_dir=None, output_filename=None):
+    def process_kmz(self, input_kmz_path, output_dir=None, output_filename=None, enable_hover=True, hover_time=2.0):
         """
         Complete KMZ processing workflow
         
@@ -29,6 +29,8 @@ class KMZProcessor:
             input_kmz_path: Path to input KMZ file
             output_dir: Directory to save output (default: same as input)
             output_filename: Custom output filename (default: DJI RC format)
+            enable_hover: Whether to add hover actions (default: True)
+            hover_time: Hover duration in seconds (default: 2.0)
         
         Returns:
             Path to processed KMZ file
@@ -54,7 +56,7 @@ class KMZProcessor:
                 return None
                 
             # Step 5: Process WPML file (add hover + photo actions)
-            if not self._process_wpml():
+            if not self._process_wpml(enable_hover, hover_time):
                 return None
                 
             # Step 6: Create new KMZ with processed WPML
@@ -175,7 +177,7 @@ class KMZProcessor:
             print(f"❌ Failed to find WPML files: {str(e)}")
             return False
     
-    def _process_wpml(self):
+    def _process_wpml(self, enable_hover=True, hover_time=2.0):
         """Process WPML file to add hover and photo actions"""
         print("⚙️ Step 5: Processing WPML file...")
         
@@ -199,8 +201,14 @@ class KMZProcessor:
                 print("❌ No insertion points found - WPML not compatible")
                 return False
             
+            # Show processing options
+            if enable_hover:
+                print(f"🎯 Adding hover ({hover_time}s) + photo actions to all waypoints")
+            else:
+                print("📸 Adding photo actions only to all waypoints")
+            
             # Process the file using our existing logic
-            processed_content = self._add_hover_photo_actions(content)
+            processed_content = self._add_hover_photo_actions(content, enable_hover, hover_time)
             
             if not processed_content:
                 print("❌ Failed to process WPML content")
@@ -217,10 +225,9 @@ class KMZProcessor:
             print(f"❌ Failed to process WPML: {str(e)}")
             return False
     
-    def _add_hover_photo_actions(self, content):
+    def _add_hover_photo_actions(self, content, enable_hover=True, hover_time=2.0):
         """Add hover and photo actions to WPML content"""
         try:
-            # This uses the same logic as our existing hover_add_actions.py
             lines = content.split('\n')
             new_lines = []
             action_group_id = 0
@@ -230,8 +237,10 @@ class KMZProcessor:
                 
                 # Look for insertion point
                 if '<wpml:useStraightLine>0</wpml:useStraightLine>' in line:
-                    # Add the hover + photo action block
-                    action_block = f'''<!-- Action Group for Waypoint: {action_group_id}'s Actions -->
+                    # Generate action block based on options
+                    if enable_hover:
+                        # Hover + Photo actions
+                        action_block = f'''<!-- Action Group for Waypoint: {action_group_id}'s Actions -->
 <wpml:actionGroup>
 <wpml:actionGroupId>{action_group_id}</wpml:actionGroupId>
 <wpml:actionGroupStartIndex>{action_group_id}</wpml:actionGroupStartIndex>
@@ -244,11 +253,32 @@ class KMZProcessor:
 <wpml:actionId>0</wpml:actionId>
 <wpml:actionActuatorFunc>hover</wpml:actionActuatorFunc>
 <wpml:actionActuatorFuncParam>
-<wpml:hoverTime>2</wpml:hoverTime>
+<wpml:hoverTime>{hover_time}</wpml:hoverTime>
 </wpml:actionActuatorFuncParam>
 </wpml:action>
 <wpml:action>
 <wpml:actionId>1</wpml:actionId>
+<wpml:actionActuatorFunc>takePhoto</wpml:actionActuatorFunc>
+<wpml:actionActuatorFuncParam>
+<wpml:payloadPositionIndex>0</wpml:payloadPositionIndex>
+<wpml:fileSuffix/>
+<wpml:useGlobalPayloadLensIndex>0</wpml:useGlobalPayloadLensIndex>
+</wpml:actionActuatorFuncParam>
+</wpml:action>
+</wpml:actionGroup>'''
+                    else:
+                        # Photo action only
+                        action_block = f'''<!-- Action Group for Waypoint: {action_group_id}'s Actions -->
+<wpml:actionGroup>
+<wpml:actionGroupId>{action_group_id}</wpml:actionGroupId>
+<wpml:actionGroupStartIndex>{action_group_id}</wpml:actionGroupStartIndex>
+<wpml:actionGroupEndIndex>{action_group_id}</wpml:actionGroupEndIndex>
+<wpml:actionGroupMode>sequence</wpml:actionGroupMode>
+<wpml:actionTrigger>
+<wpml:actionTriggerType>reachPoint</wpml:actionTriggerType>
+</wpml:actionTrigger>
+<wpml:action>
+<wpml:actionId>0</wpml:actionId>
 <wpml:actionActuatorFunc>takePhoto</wpml:actionActuatorFunc>
 <wpml:actionActuatorFuncParam>
 <wpml:payloadPositionIndex>0</wpml:payloadPositionIndex>
