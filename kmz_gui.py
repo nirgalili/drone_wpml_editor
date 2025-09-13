@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
 import threading
 import os
+import re
 from pathlib import Path
 from kmz_processor import KMZProcessor
 
@@ -238,17 +239,24 @@ class KMZProcessorGUI:
             # Create processor
             processor = KMZProcessor()
             
-            # Override the print function to log to GUI
-            original_print = print
-            def gui_print(*args, **kwargs):
-                message = ' '.join(str(arg) for arg in args)
-                self.root.after(0, lambda: self.log_message(message))
-            
             # Process the file with custom filename and hover options
             hover_enabled = self.enable_hover.get()
             hover_time = float(self.hover_time.get()) if hover_enabled else 0
-            output_path = processor.process_kmz(self.input_file.get(), self.output_dir.get(), 
-                                              self.output_filename.get(), hover_enabled, hover_time)
+            
+            # Override the print function to log to GUI
+            import builtins
+            original_print = builtins.print
+            def gui_print(*args, **kwargs):
+                message = ' '.join(str(arg) for arg in args)
+                self.root.after(0, lambda: self.log_message(message))
+            builtins.print = gui_print
+            
+            try:
+                output_path = processor.process_kmz(self.input_file.get(), self.output_dir.get(), 
+                                                  self.output_filename.get(), hover_enabled, hover_time)
+            finally:
+                # Restore original print function
+                builtins.print = original_print
             
             if output_path:
                 self.root.after(0, lambda: self._processing_complete(True, output_path))
@@ -265,6 +273,14 @@ class KMZProcessorGUI:
         self.progress.stop()
         
         if success:
+            # Add important summary at the top
+            self.log_message("\n" + "="*60)
+            self.log_message("📊 MISSION SUMMARY")
+            self.log_message("="*60)
+            
+            # Extract key info from the log (we'll need to parse it)
+            self._add_mission_summary()
+            
             self.log_message("\n🎉 SUCCESS!")
             self.log_message(f"📁 Input:  {self.input_file.get()}")
             self.log_message(f"📁 Output: {result}")
@@ -281,6 +297,43 @@ class KMZProcessorGUI:
             self.log_message(f"\n❌ FAILED: {error_msg}")
             self.status_var.set("Processing failed")
             messagebox.showerror("Error", f"Failed to process KMZ file:\n\n{error_msg}")
+    
+    def _add_mission_summary(self):
+        """Add a summary of the most important mission information"""
+        try:
+            # Get the log content to extract key information
+            log_content = self.log_text.get(1.0, tk.END)
+            
+            # Extract waypoint count
+            waypoint_match = re.search(r'Found (\d+) waypoints', log_content)
+            waypoint_count = waypoint_match.group(1) if waypoint_match else "Unknown"
+            
+            # Extract distance
+            distance_match = re.search(r'Total distance: ([\d,]+\.?\d*) meters', log_content)
+            distance = distance_match.group(1) if distance_match else "Unknown"
+            
+            # Extract total mission time
+            time_match = re.search(r'Total mission time: (\d+m \d+s)', log_content)
+            mission_time = time_match.group(1) if time_match else "Unknown"
+            
+            # Extract battery usage
+            battery_match = re.search(r'Estimated battery usage: ~(\d+)%', log_content)
+            battery_usage = battery_match.group(1) if battery_match else "Unknown"
+            
+            # Extract hover settings
+            hover_enabled = self.enable_hover.get()
+            hover_time = self.hover_time.get() if hover_enabled else "Disabled"
+            
+            # Add summary
+            self.log_message(f"🎯 Waypoints: {waypoint_count}")
+            self.log_message(f"📏 Distance: {distance} meters")
+            self.log_message(f"⏱️  Mission Time: {mission_time}")
+            self.log_message(f"🔋 Battery Usage: ~{battery_usage}%")
+            self.log_message(f"🚁 Hover: {hover_time}s" if hover_enabled else "🚁 Hover: Disabled")
+            self.log_message(f"📸 Actions: Photo capture at every waypoint")
+            
+        except Exception as e:
+            self.log_message(f"⚠️  Could not generate summary: {str(e)}")
 
 def main():
     """Main function"""
